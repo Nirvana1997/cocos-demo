@@ -3,25 +3,33 @@
 
 #include "cocos2d.h"
 
+using namespace cocos2d;
+
 class HelloWorld : public cocos2d::Scene
 {
 public:
-    static cocos2d::Scene* createScene();
+    static Scene* createScene();
 
     virtual bool init();
     
     // a selector callback
-    void menuCloseCallback(cocos2d::Ref* pSender);
+    void menuCloseCallback(Ref* pSender);
     
     void addMonster(float dt);
     
-    bool onTouchBegan(cocos2d::Touch *touch, cocos2d::Event *unused_event);
+    bool onTouchBegan(Touch *touch, Event *unused_event);
+    
+    void moveFinish(Node* sender);
+    
+    void update(float dt);
     
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
     
 private:
-    cocos2d::Sprite* _player;
+    Sprite* _player;
+    Array* _monsters;
+    Array* _fireballs;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

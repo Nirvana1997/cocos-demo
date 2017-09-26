@@ -63,6 +63,12 @@ bool HelloWorld::init()
 //    // add the sprite as a child to this layer
 //    this->addChild(sprite, 0);
     
+    _monsters = Array::create();
+    _fireballs = Array::create();
+    
+    _monsters->retain();
+    _fireballs->retain();
+    
     auto background = Sprite::create("background.jpeg");
     background->setPosition(Vec2(visibleSize.width/2,visibleSize.height/2));
     background->setContentSize(Size(visibleSize.width,visibleSize.height));
@@ -79,6 +85,8 @@ bool HelloWorld::init()
     auto eventListener = EventListenerTouchOneByOne::create();
     eventListener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
     this->getEventDispatcher()->addEventListenerWithSceneGraphPriority(eventListener, _player);
+    
+    this->schedule(schedule_selector(HelloWorld::update));
     
     return true;
 }
@@ -114,8 +122,10 @@ void HelloWorld::addMonster(float dt) {
     int randomY = (rand() % rangeY) + minY;
 
     monster->setPosition(Vec2(selfContentSize.width + monsterContentSize.width/2, randomY));
+    monster->setTag(1);
     
     this->addChild(monster);
+    _monsters->addObject(monster);
 
     // 2
     int minDuration = 5.0;
@@ -125,8 +135,18 @@ void HelloWorld::addMonster(float dt) {
 
     // 3
     auto actionMove = MoveTo::create(randomDuration, Vec2(-monsterContentSize.width/2, randomY));
-    auto actionRemove = RemoveSelf::create();
+    auto actionRemove = CallFuncN::create(this,callfuncN_selector(HelloWorld::moveFinish));
     monster->runAction(Sequence::create(actionMove,actionRemove, nullptr));
+}
+
+void HelloWorld::moveFinish(Node* sender){
+    Sprite* toDelete = (Sprite*) sender;
+    //tag1为monster，2为fireball
+    if(toDelete->getTag()==1){
+        _monsters->removeObject(toDelete);
+    }else if(toDelete->getTag()==2){
+        _fireballs->removeObject(toDelete);
+    }
 }
 
 bool HelloWorld::onTouchBegan(Touch *touch, Event *unused_event) {
@@ -143,22 +163,40 @@ bool HelloWorld::onTouchBegan(Touch *touch, Event *unused_event) {
     }
     
     // 4
-    auto projectile = Sprite::create("fireball.png");
-    projectile->setPosition(_player->getPosition());
-    this->addChild(projectile);
+    auto fireball = Sprite::create("fireball.png");
+    fireball->setPosition(_player->getPosition());
+    fireball->setTag(2);
+    this->addChild(fireball);
+    
+    _fireballs->addObject(fireball);
     
     // 5
     offset.normalize();
     auto shootAmount = offset * 1000;
     
     // 6
-    auto realDest = shootAmount + projectile->getPosition();
+    auto realDest = shootAmount + fireball->getPosition();
     
     // 7
     auto actionMove = MoveTo::create(2.0f, realDest);
     auto actionRemove = RemoveSelf::create();
-    projectile->runAction(Sequence::create(actionMove,actionRemove,     nullptr));
+    fireball->runAction(Sequence::create(actionMove,actionRemove,     nullptr));
     
     return true;
+}
+
+void HelloWorld::update(float dt){
+    for(int i=0;i<_monsters->count();i++){
+        Sprite* monster = (Sprite*)_monsters->getObjectAtIndex(i);
+        for(int j=0;j<_fireballs->count();j++){
+            Sprite* fireball = (Sprite*) _fireballs->getObjectAtIndex(j);
+            if(monster->getBoundingBox().intersectsRect(fireball->getBoundingBox())){
+                _monsters->removeObject(monster);
+                _fireballs->removeObject(fireball);
+                this->removeChild(monster);
+                this->removeChild(fireball);
+            }
+        }
+    }
 }
 
