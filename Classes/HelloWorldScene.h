@@ -30,6 +30,9 @@ private:
     Sprite* _player;
     Array* _monsters;
     Array* _fireballs;
+    std::map<EventKeyboard::KeyCode,bool> keys;
+    
+    const int OFFSET = 4;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

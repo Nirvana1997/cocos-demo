@@ -76,7 +76,7 @@ bool HelloWorld::init()
     
     _player = Sprite::create("player.png");
     _player->setPosition(Vec2(visibleSize.width * 0.1, visibleSize.height * 0.5));
-    _player->setScale(0.1, 0.1);
+    _player->setScale(0.05, 0.05);
     this->addChild(_player);
     
     srand((unsigned int)time(nullptr));
@@ -85,6 +85,16 @@ bool HelloWorld::init()
     auto eventListener = EventListenerTouchOneByOne::create();
     eventListener->onTouchBegan = CC_CALLBACK_2(HelloWorld::onTouchBegan, this);
     this->getEventDispatcher()->addEventListenerWithSceneGraphPriority(eventListener, _player);
+    
+    auto keyListener = EventListenerKeyboard::create();
+    keyListener->onKeyPressed = [=](EventKeyboard::KeyCode keyCode, Event* event){
+        keys[keyCode] = true;
+    };
+    keyListener->onKeyReleased = [=](EventKeyboard::KeyCode keyCode, Event* event){
+        keys[keyCode] = false;
+    };
+    
+    this->getEventDispatcher()->addEventListenerWithSceneGraphPriority(keyListener, _player);
     
     this->schedule(schedule_selector(HelloWorld::update));
     
@@ -157,11 +167,6 @@ bool HelloWorld::onTouchBegan(Touch *touch, Event *unused_event) {
     Vec2 touchLocation = touch->getLocation();
     Vec2 offset = touchLocation - _player->getPosition();
     
-    // 3
-    if (offset.x < 0) {
-        return true;
-    }
-    
     // 4
     auto fireball = Sprite::create("fireball.png");
     fireball->setPosition(_player->getPosition());
@@ -186,6 +191,26 @@ bool HelloWorld::onTouchBegan(Touch *touch, Event *unused_event) {
 }
 
 void HelloWorld::update(float dt){
+    int offsetX = 0, offsetY = 0;
+    auto w = EventKeyboard::KeyCode::KEY_W;
+    auto a = EventKeyboard::KeyCode::KEY_A;
+    auto s = EventKeyboard::KeyCode::KEY_S;
+    auto d = EventKeyboard::KeyCode::KEY_D;
+    if(keys[w]){
+        offsetY = OFFSET;
+    }
+    if(keys[a]){
+        offsetX = -OFFSET;
+    }
+    if(keys[s]){
+        offsetY = -OFFSET;
+    }
+    if(keys[d]){
+        offsetX = OFFSET;
+    }
+    auto moveTo = MoveTo::create(0.3, Vec2(_player->getPositionX() + offsetX, _player->getPositionY() + offsetY));
+    _player->runAction(moveTo);
+    
     for(int i=0;i<_monsters->count();i++){
         Sprite* monster = (Sprite*)_monsters->getObjectAtIndex(i);
         for(int j=0;j<_fireballs->count();j++){
