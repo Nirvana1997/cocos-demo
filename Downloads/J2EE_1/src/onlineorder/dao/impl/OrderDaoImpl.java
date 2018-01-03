@@ -1,5 +1,6 @@
 package onlineorder.dao.impl;
 
+import onlineorder.dao.DataHelper;
 import onlineorder.dao.OrderDao;
 import onlineorder.model.Order;
 
@@ -22,23 +23,7 @@ public class OrderDaoImpl implements OrderDao{
         return orderDao;
     }
 
-    private DataSource datasource = null;
-
     private OrderDaoImpl() {
-        InitialContext jndiContext = null;
-
-        Properties properties = new Properties();
-        properties.put(javax.naming.Context.PROVIDER_URL, "jnp:///");
-        properties.put(javax.naming.Context.INITIAL_CONTEXT_FACTORY, "org.apache.naming.java.javaURLContextFactory");
-        try {
-            jndiContext = new InitialContext(properties);
-            datasource = (DataSource) jndiContext.lookup("java:comp/env/jdbc/onlineorder");
-            System.out.println("got context");
-            System.out.println("About to get ds---ShowMyStock");
-        } catch (NamingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -47,12 +32,7 @@ public class OrderDaoImpl implements OrderDao{
         PreparedStatement stmt = null;
         ResultSet result = null;
         List<Order> list = new ArrayList();
-        Statement sm = null;
-        try {
-            connection = datasource.getConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        connection = DataHelperImpl.getBaseDaoInstance().getConnection();
 
         try {
             stmt = connection.prepareStatement("select * from `order` where user_id = ?");

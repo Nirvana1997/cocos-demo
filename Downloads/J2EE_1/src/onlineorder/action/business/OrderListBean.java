@@ -9,13 +9,13 @@ import java.util.List;
  * @author qianzhihao
  * @version 2017/12/31
  */
-public class OrderBean implements Serializable{
+public class OrderListBean implements Serializable{
 
     private static final long serialVersionUID = 9196299059263041126L;
 
     private List<Order> orderList;
 
-    private List<Order> getOrderList(){
+    public List<Order> getOrderList(){
         return orderList;
     }
 
@@ -25,5 +25,9 @@ public class OrderBean implements Serializable{
 
     public void setOrderList(Order order,int index){
         orderList.set(index,order);
+    }
+
+    public int getSize(){
+        return orderList.size();
     }
 }

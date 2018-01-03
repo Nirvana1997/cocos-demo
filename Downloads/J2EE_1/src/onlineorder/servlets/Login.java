@@ -1,7 +1,9 @@
 package onlineorder.servlets;
 
 import com.sun.deploy.net.HttpRequest;
+import onlineorder.service.impl.LoginServiceImpl;
 
+import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletContext;
@@ -21,56 +23,40 @@ import java.util.Properties;
  */
 @WebServlet("/Login")
 public class Login extends HttpServlet {
-	private static final long serialVersionUID = 1L;
-    private DataSource datasource = null;
-       
+    private static final long serialVersionUID = 1L;
+
     /**
      * @see HttpServlet#HttpServlet()
      */
     public Login() {
         super();
-
-        InitialContext jndiContext = null;
-
-        Properties properties = new Properties();
-        properties.put(javax.naming.Context.PROVIDER_URL, "jnp:///");
-        properties.put(javax.naming.Context.INITIAL_CONTEXT_FACTORY, "org.apache.naming.java.javaURLContextFactory");
-        try {
-            jndiContext = new InitialContext(properties);
-            datasource = (DataSource) jndiContext.lookup("java:comp/env/jdbc/onlineorder");
-            System.out.println("got context");
-            System.out.println("About to get ds---ShowMyStock");
-        } catch (NamingException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        // TODO Auto-generated constructor stub
     }
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    /**
+     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+     */
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        ServletContext context = getServletContext();
 
-		String login="";
+        String login = "";
 
-		Cookie cookie = null;
+        Cookie cookie = null;
         Cookie[] cookies = request.getCookies();
-  
+
         Integer ival = new Integer(1);
-        		
+
         if (null != cookies) {
             // Look through all the cookies and see if the
             // cookie with the login info is there.
             for (int i = 0; i < cookies.length; i++) {
                 cookie = cookies[i];
                 if (cookie.getName().equals("LoginCookie")) {
-                    login=cookie.getValue();
+                    login = cookie.getValue();
                     break;
                 }
             }
         }
-    
+
         // Logout action removes session, but the cookie remains
         if (null != request.getParameter("Logout")) {
             System.out.println("logout");
@@ -81,119 +67,39 @@ public class Login extends HttpServlet {
                 session = null;
             }
         }
-       
-        response.setContentType("text/html;charset=utf-8");
+
+        context.getRequestDispatcher("/view/login.jsp").forward(request, response);
+    }
+
+    /**
+     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+     */
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         PrintWriter out = response.getWriter();
+        String login = (String) request.getParameter("login");
+        String password = (String) request.getParameter("password");
 
-        out.println("<html><body>");
+        ServletContext context = getServletContext();
 
-        out.println(
-                "<form method='POST' action='"
-                    + response.encodeURL(request.getContextPath()+"/Login")
-                    + "'>");
-        out.println(
-            "login: <input type='text' name='login' value='" + login + "'>");
-        out.println(
-            "password: <input type='password' name='password' value=''>");
-        out.println("<input type='submit' name='Submit' value='Submit'>");
-   
-        out.println("<p>Servlet is version @version@</p>");
-//    out.println("</p>You are visitor number " + webCounter);
-        int all = getServletContext().getAttribute("all")==null?0:(int)getServletContext().getAttribute("all");
-        int user = getServletContext().getAttribute("user")==null?0:(int)getServletContext().getAttribute("user");
-        out.println("游客人数："+(all-user));
-        out.println("登录用户："+user);
-        out.println("总人数："+all);
-       
-    
-    out.println("</form></body></html>");
-     
-	}
+//        try {
+        int result = LoginServiceImpl.getInstance().getUserIdAndJudgePassword(login, password);
+        request.getSession(true).setAttribute("loginResult",result);
+        if (result > 0) {
+            System.out.println("密码正确。");
 
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html;charset=utf-8");
-        PrintWriter out = response.getWriter();
+            //统计登录用户人数+1
+            int user = context.getAttribute("user") == null ? 0 : (int) context.getAttribute("user");
+            context.setAttribute("user", user + 1);
 
-        Connection connection = null;
-        PreparedStatement stmt = null;
-        ResultSet result = null;
-        Statement sm = null;
-
-        try {
-            connection = datasource.getConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            setCookieAndSession(request, response, String.valueOf(result), login);
+            response.sendRedirect(request.getContextPath() + "/ShowMyOrderServlet");
+        }else {
+            context.getRequestDispatcher("/view/login.jsp").forward(request, response);
         }
-
-        String login = (String)request.getParameter("login");
-        String password = (String)request.getParameter("password");
-
-        try {
-            System.out.println(login);
-            stmt = connection.prepareStatement("select * from user where user_name = '"+ login +"'");
-            result = stmt.executeQuery();
-            if(result.next()){
-                if(password.equals(result.getString("password"))){
-                    System.out.println("密码正确。");
-
-                    //统计登录用户人数+1
-                    ServletContext context = getServletContext();
-                    int user = context.getAttribute("user")==null?0:(int)context.getAttribute("user");
-                    context.setAttribute("user",user+1);
-
-                    setCookieAndSession(request,response,String.valueOf(result.getInt("user_id")),login);
-                    response.sendRedirect(request.getContextPath() + "/ShowMyOrderServlet");
-                }else {
-                    System.out.println("密码错误!");
-                    out.print("<body onLoad=\"checkForm()\"><script language=\"JavaScript\" type=\"text/JavaScript\">function checkForm(){ \n" +
-                            "                    alert(\"密码错误!\");return true;}</script></body>");
-                }
-
-            }else {
-                System.out.println("用户名不存在!");
-                out.print("<body onLoad=\"checkForm()\"><script language=\"JavaScript\" type=\"text/JavaScript\">function checkForm(){ \n" +
-                        "                    alert(\"用户名不存在!\");return true;}</script></body>");
-
-            }
-            out.println("<html><body>");
-
-            out.println(
-                    "<form method='POST' action='"
-                            + response.encodeURL(request.getContextPath()+"/Login")
-                            + "'>");
-            out.println(
-                    "login: <input type='text' name='login' value=''>");
-            out.println(
-                    "password: <input type='password' name='password' value=''>");
-            out.println("<input type='submit' name='Submit' value='Submit'>");
-
-            out.println("<p>Servlet is version @version@</p>");
-//    out.println("</p>You are visitor number " + webCounter);
-            int all = getServletContext().getAttribute("all")==null?0:(int)getServletContext().getAttribute("all");
-            int user = getServletContext().getAttribute("user")==null?0:(int)getServletContext().getAttribute("user");
-            out.println("游客人数："+(all-user));
-            out.println("登录用户："+user);
-            out.println("总人数："+all);
+    }
 
 
-            out.println("</form></body></html>");
-
-        } catch (SQLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-
-	}
-
-
-
-	private void setCookieAndSession(HttpServletRequest req,HttpServletResponse resp,String  user_id,String username)throws IOException{
-        req.setCharacterEncoding("UTF-8");
-
+    private void setCookieAndSession(HttpServletRequest req, HttpServletResponse resp, String user_id, String username) throws IOException {
         HttpSession session = req.getSession(false);
         boolean cookieFound = false;
         Cookie cookie = null;
@@ -232,7 +138,7 @@ public class Login extends HttpServlet {
                 // create a session to show that we are logged in
                 session = req.getSession(true);
                 session.setAttribute("login", user_id);
-                session.setAttribute("username",username);
+                session.setAttribute("username", username);
             } else {
                 System.out.println(user_id + " session null");
                 // Display the login page. If the cookie exists, set login
@@ -242,7 +148,8 @@ public class Login extends HttpServlet {
             // 或未注销，重新加载该页面，session不为空
             System.out.println(user_id + " session");
 
-            session.setAttribute("login",user_id);
+            session.setAttribute("login", user_id);
+            session.setAttribute("username", username);
 
         }
     }

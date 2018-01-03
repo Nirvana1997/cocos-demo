@@ -1,10 +1,13 @@
 package onlineorder.servlets;
 
 
+import onlineorder.action.business.OrderListBean;
+import onlineorder.factory.ServiceFactory;
 import onlineorder.model.Order;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -29,7 +32,6 @@ import java.util.Properties;
 @WebServlet("/ShowMyOrderServlet")
 public class ShowMyOrderServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	private DataSource datasource = null;
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -40,20 +42,6 @@ public class ShowMyOrderServlet extends HttpServlet {
 	}
 
 	public void init() {
-		InitialContext jndiContext = null;
-
-		Properties properties = new Properties();
-		properties.put(javax.naming.Context.PROVIDER_URL, "jnp:///");
-		properties.put(javax.naming.Context.INITIAL_CONTEXT_FACTORY, "org.apache.naming.java.javaURLContextFactory");
-		try {
-			jndiContext = new InitialContext(properties);
-			datasource = (DataSource) jndiContext.lookup("java:comp/env/jdbc/onlineorder");
-			System.out.println("got context");
-			System.out.println("About to get ds---ShowMyStock");
-		} catch (NamingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
@@ -94,116 +82,30 @@ public class ShowMyOrderServlet extends HttpServlet {
 
 			req.setAttribute("login", loginValue);
 			getOrderList(req, resp);
-			displayMyStocklistPage(req, resp);
-			displayCount(req,resp);
-			displayLogoutPage(req, resp);
 
 		}
 
 	}
 
 	public void getOrderList(HttpServletRequest req, HttpServletResponse res) {
+		HttpSession session = req.getSession(true);
+		ServletContext context = getServletContext();
 
-		Connection connection = null;
-		PreparedStatement stmt = null;
-		ResultSet result = null;
-		ArrayList list = new ArrayList();
-		Statement sm = null;
-		try {
-			connection = datasource.getConnection();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+        OrderListBean orderListBean = new OrderListBean();
+        orderListBean.setOrderList(ServiceFactory.getOrderService().getOrderListByUserId(Integer.valueOf((String)req.getAttribute("login"))));
 
-		try {
-			System.out.println(req.getAttribute("login"));
-
-			stmt = connection.prepareStatement("select * from `order` where user_id = ?");
-			stmt.setString(1, (String) req.getAttribute("login"));
-			result = stmt.executeQuery();
-			while (result.next()) {
-				Order order = new Order();
-				order.setName(result.getString("name"));
-				order.setPrice(result.getDouble("price"));
-				order.setOrderTime(result.getDate("order_time"));
-				order.setQuantity(result.getInt("quantity"));
-				order.setOrder_id(result.getInt("order_id"));
-				order.setUser_id(result.getInt("user_id"));
-				order.setIn_stock(result.getBoolean("in_stock"));
-				list.add(order);
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		req.setAttribute("list", list);
-
-	}
-
-	public void displayLogoutPage(HttpServletRequest req, HttpServletResponse res) throws IOException {
-		PrintWriter out = res.getWriter();
-		// 注销Logout
-		out.println("<form method='GET' action='" + res.encodeURL(req.getContextPath() + "/Login") + "'>");
-		out.println("</p>");
-		out.println("<input type='submit' name='Logout' value='Logout'>");
-		out.println("</form>");
-		out.println("<p>Servlet is version @version@</p>");
-		out.println("</body></html>");
-
-	}
-
-	public void displayMyStocklistPage(HttpServletRequest req, HttpServletResponse res) throws IOException {
-		ArrayList list = (ArrayList) req.getAttribute("list"); // resp.sendRedirect(req.getContextPath()+"/MyStockList");
-
-        //判断是否存在无库存情况
-        boolean notInStock = false;
-
-		PrintWriter out = res.getWriter();
-		out.println("<html><body>");
-		out.println("<table width='650' border='0' >");
-		out.println("<tr>");
-		out.println("<td width='650' height='80' background='" + req.getContextPath() + "/image/top.jpg'>&nbsp;</td>");
-		out.println("</tr>");
-		out.println("</table>");
-		out.println("<p>Welcome " + req.getAttribute("username") + "</p>");
-
-		out.println("My Stock List: <br>");
-		out.println("<table border='1'>");
-		out.println("<tr>");
-		out.println("<th>order_id</th>");
-		out.println("<th>user_id</th>");
-		out.println("<th>order_time</th>");
-		out.println("<th>quantity</th>");
-		out.println("<th>price</th>");
-		out.println("<th>name</th>");
-		out.println("<th>in_stock</th>");
-
-		for (int i = 0; i < list.size(); i++) {
-			Order order = (Order) list.get(i);
-            if(!order.isIn_stock()){
-                notInStock = true;
+        try {
+            if (orderListBean.getSize() > 0) {
+                session.setAttribute("orderList", orderListBean);
+                context.getRequestDispatcher("/view/orderList.jsp").forward(req, res);
+            } else {
+                context.getRequestDispatcher("/view/noOrder.jsp").forward(req,res);
             }
-			out.println(order);
-        }
-        out.println("</table>");
-		out.println("</p>");
-		// 点击here，刷新该页面，会话有效
-		out.println("Click <a href='" + res.encodeURL(req.getRequestURI()) + "'>here</a> to reload this page.<br>");
-
-		if(notInStock){
-            out.print("<body onLoad=\"checkForm()\"><script language=\"JavaScript\" type=\"text/JavaScript\">function checkForm(){ \n" +
-                    "                    alert(\"存在缺货订单!\");return true;}</script></body>");
+        }catch (ServletException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
         }
 	}
-
-	public void displayCount(HttpServletRequest req, HttpServletResponse res) throws IOException{
-	    PrintWriter out = res.getWriter();
-	    int all = getServletContext().getAttribute("all")==null?0:(int)getServletContext().getAttribute("all");
-	    int user = getServletContext().getAttribute("user")==null?0:(int)getServletContext().getAttribute("user");
-	    out.println("游客人数："+(all-user));
-	    out.println("登录用户："+user);
-	    out.println("总人数："+all);
-    }
 
 }
