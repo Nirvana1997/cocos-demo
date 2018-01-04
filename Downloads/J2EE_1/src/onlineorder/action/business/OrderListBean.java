@@ -28,6 +28,6 @@ public class OrderListBean implements Serializable{
     }
 
     public int getSize(){
-        return orderList.size();
+        return null==orderList?0:orderList.size();
     }
 }

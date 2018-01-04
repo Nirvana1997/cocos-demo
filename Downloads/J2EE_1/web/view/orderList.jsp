@@ -7,7 +7,9 @@
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@taglib prefix="order" uri="/WEB-INF/tlds/orderInfo.tld" %>
+<%@taglib prefix="check" uri="/WEB-INF/tlds/checkSession.tld" %>
 <html>
+<check:checkSession response="<%=response%>"/>
 <head>
     <title>OrderList</title>
 </head>

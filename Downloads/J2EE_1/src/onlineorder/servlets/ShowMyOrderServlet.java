@@ -92,7 +92,12 @@ public class ShowMyOrderServlet extends HttpServlet {
 		ServletContext context = getServletContext();
 
         OrderListBean orderListBean = new OrderListBean();
-        orderListBean.setOrderList(ServiceFactory.getOrderService().getOrderListByUserId(Integer.valueOf((String)req.getAttribute("login"))));
+        try {
+			orderListBean.setOrderList(ServiceFactory.getOrderService().getOrderListByUserId(Integer.valueOf((String)req.getAttribute("login"))));
+		}catch (Exception e){
+			System.out.println("未登录");
+		}
+
 
         try {
             if (orderListBean.getSize() > 0) {
