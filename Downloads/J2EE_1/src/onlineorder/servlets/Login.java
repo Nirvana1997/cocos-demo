@@ -1,22 +1,14 @@
 package onlineorder.servlets;
 
-import com.sun.deploy.net.HttpRequest;
-import onlineorder.service.impl.LoginServiceImpl;
+import onlineorder.factory.EjbFactory;
+import onlineorder.service.LoginService;
 
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
-import javax.sql.DataSource;
-import javax.swing.*;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Properties;
 
 /**
  * Servlet implementation class Login
@@ -24,6 +16,8 @@ import java.util.Properties;
 @WebServlet("/Login")
 public class Login extends HttpServlet {
     private static final long serialVersionUID = 1L;
+
+    LoginService loginService = (LoginService) EjbFactory.getEJB("LoginServiceImpl", "onlineorder.service.LoginService");
 
     /**
      * @see HttpServlet#HttpServlet()
@@ -82,7 +76,8 @@ public class Login extends HttpServlet {
         ServletContext context = getServletContext();
 
 //        try {
-        int result = LoginServiceImpl.getInstance().getUserIdAndJudgePassword(login, password);
+        int result = loginService.getUserIdAndJudgePassword(login, password);
+        System.out.println("result:"+result);
         request.getSession(true).setAttribute("loginResult",result);
         if (result > 0) {
             System.out.println("密码正确。");

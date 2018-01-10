@@ -2,21 +2,17 @@ package onlineorder.servlets;
 
 
 import onlineorder.action.business.OrderListBean;
-import onlineorder.factory.ServiceFactory;
-import onlineorder.model.Order;
+import onlineorder.factory.EjbFactory;
+import onlineorder.service.OrderService;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.*;
-import javax.sql.DataSource;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Properties;
 
 /*
  此Servlet未使用DAO、MVC设计，要求只有已登录的客户才能查看自己购买的股票(数据源)，
@@ -32,6 +28,8 @@ import java.util.Properties;
 @WebServlet("/ShowMyOrderServlet")
 public class ShowMyOrderServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+
+	OrderService orderService = (OrderService) EjbFactory.getEJB("OrderServiceImpl", "onlineorder.service.OrderService");
 
 	/**
 	 * @see HttpServlet#HttpServlet()
@@ -93,8 +91,9 @@ public class ShowMyOrderServlet extends HttpServlet {
 
         OrderListBean orderListBean = new OrderListBean();
         try {
-			orderListBean.setOrderList(ServiceFactory.getOrderService().getOrderListByUserId(Integer.valueOf((String)req.getAttribute("login"))));
+			orderListBean.setOrderList(orderService.getOrderListByUserId(Integer.valueOf((String)req.getAttribute("login"))));
 		}catch (Exception e){
+            e.printStackTrace();
 			System.out.println("未登录");
 		}
 

@@ -1,12 +1,13 @@
 package onlineorder.model;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * @author qianzhihao
  * @version 2017/12/14
  */
-public class Order {
+public class Order implements Serializable{
     private int order_id;
 
     private int user_id;
